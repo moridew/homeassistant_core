@@ -67,13 +67,16 @@ AC_MODE_TO_STATE = {
     "heat": HVACMode.HEAT,
     "heatClean": HVACMode.HEAT,
     "fanOnly": HVACMode.FAN_ONLY,
+    "aIComfort": HVACMode.AUTO,
+    "wind": HVACMode.FAN_ONLY,
 }
 STATE_TO_AC_MODE = {
     HVACMode.HEAT_COOL: "auto",
     HVACMode.COOL: "cool",
     HVACMode.DRY: "dry",
     HVACMode.HEAT: "heat",
-    HVACMode.FAN_ONLY: "fanOnly",
+    HVACMode.AUTO: "aIComfort",
+    HVACMode.FAN_ONLY: "wind",
 }
 
 SWING_TO_FAN_OSCILLATION = {
@@ -352,7 +355,7 @@ class SmartThingsAirConditioner(SmartThingsEntity, ClimateEntity):
         """Init the class."""
         super().__init__(device)
         self._hvac_modes = []
-        self._attr_preset_mode = None
+        self._attr_preset_mode = "off"
         self._attr_preset_modes = self._determine_preset_modes()
         self._attr_swing_modes = self._determine_swing_modes()
         self._attr_supported_features = self._determine_supported_features()
@@ -375,7 +378,7 @@ class SmartThingsAirConditioner(SmartThingsEntity, ClimateEntity):
         await self._device.set_fan_mode(fan_mode, set_status=True)
 
         # setting the fan must reset the preset mode (it deactivates the windFree function)
-        self._attr_preset_mode = None
+        self._attr_preset_mode = "off"
 
         # State is set optimistically in the command above, therefore update
         # the entity state ahead of receiving the confirming push updates
@@ -430,6 +433,8 @@ class SmartThingsAirConditioner(SmartThingsEntity, ClimateEntity):
     async def async_turn_off(self) -> None:
         """Turn device off."""
         await self._device.switch_off(set_status=True)
+        # setting the fan must reset the preset mode (it deactivates the windFree function)
+        self._attr_preset_mode = "off"
         # State is set optimistically in the command above, therefore update
         # the entity state ahead of receiving the confirming push updates
         self.async_write_ha_state()
@@ -524,7 +529,7 @@ class SmartThingsAirConditioner(SmartThingsEntity, ClimateEntity):
         await self._device.set_fan_oscillation_mode(fan_oscillation_mode)
 
         # setting the fan must reset the preset mode (it deactivates the windFree function)
-        self._attr_preset_mode = None
+        self._attr_preset_mode = "off"
 
         self.async_schedule_update_ha_state(True)
 
@@ -541,7 +546,7 @@ class SmartThingsAirConditioner(SmartThingsEntity, ClimateEntity):
             "supportedAcOptionalMode"
         ].value
         if supported_modes and WINDFREE in supported_modes:
-            return [WINDFREE]
+            return ["off",WINDFREE]
         return None
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
